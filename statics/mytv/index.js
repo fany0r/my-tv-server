@@ -1,7 +1,12 @@
+import {decode, encode, verify} from './gua64.min.js';
+
 const input = document.getElementById('input');
 const local = document.getElementById('local');
 const lan = document.getElementById('lan');
 const internet = document.getElementById('internet');
+const localJson = document.getElementById('local-json');
+const lanJson = document.getElementById('lan-json');
+const internetJson = document.getElementById('internet-json');
 const options = document.querySelectorAll('.option');
 const messages = document.querySelectorAll('.message');
 
@@ -70,6 +75,9 @@ const read = async (file, extension) => {
                 break
             }
             case 'json': {
+                if (verify(out)) {
+                    out = decode(out)
+                }
                 switch (extension) {
                     case 'txt': {
                         const lines = out.split('\n');
@@ -100,11 +108,17 @@ const read = async (file, extension) => {
                             line = line.trim();
                             if (line.startsWith('#EXTINF')) {
                                 const infos = line.split(',');
-                                const title = infos.pop()
+                                const title = infos.pop();
+
+                                const nameMatchResult = infos[0]?.match(nameRegex);
+                                const name = nameMatchResult ? nameMatchResult[1] : '';
+
+                                const logoMatchResult = infos[0]?.match(logRegex);
+                                const logo = logoMatchResult ? logoMatchResult[1] : '';
                                 list.push({
-                                    name: infos[0]?.match(nameRegex)[1],
+                                    name: name,
                                     group: infos[0]?.match(groupRegex)[1],
-                                    logo: infos[0]?.match(logRegex)[1],
+                                    logo: logo,
                                     title: title,
                                     uris: [lines[lines.indexOf(line) + 1]]
                                 })
@@ -154,3 +168,23 @@ const sendFile = async (body) => {
         internet.innerText = internetUrl;
     }
 }
+
+(async ()=>{
+    const response = await fetch('/ip/info');
+    const json = await response.json();
+    const localUrl = json?.data?.local_url
+    if (localUrl) {
+        localJson.href = `http://${localUrl}/example.json`;
+        localJson.innerText = `http://${localUrl}/example.json`;
+    }
+    const lanUrl = json?.data?.lan_url
+    if (lanUrl) {
+        lanJson.href = `http://${lanUrl}/example.json`;
+        lanJson.innerText = `http://${lanUrl}/example.json`;
+    }
+    const internetUrl = json?.data?.internet_url
+    if (internetUrl) {
+        internetJson.href = `http://${internetUrl}/example.json`;
+        internetJson.innerText = `http://${internetUrl}/example.json`;
+    }
+})()
